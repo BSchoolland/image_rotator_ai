@@ -29,16 +29,6 @@ def transpose_image(image, angle):
     return image
 
 
-def random_crop(image, crop_size_percent):
-    width, height = image.size
-    crop_width = int(width * crop_size_percent)
-    crop_height = int(height * crop_size_percent)
-    left = np.random.randint(0, width - crop_width)
-    top = np.random.randint(0, height - crop_height)
-    right = left + crop_width
-    bottom = top + crop_height
-    return image.crop((left, top, right, bottom))
-
 def correct_image_orientation(image):
     try:
         for orientation in ExifTags.TAGS.keys():
@@ -56,7 +46,9 @@ def correct_image_orientation(image):
         pass
     return image
 
-def generate_permutations(input_dir, output_base_dir, num_lightning_variations=5):
+RANDOM_CROP_PIXELS = 20
+
+def generate_permutations(input_dir, output_base_dir, num_lightning_variations=5, num_crop_variations=5):
     # Ensure output directories exist
     rotations = [0, 90, 180, 270]
     for rotation in rotations:
@@ -72,19 +64,25 @@ def generate_permutations(input_dir, output_base_dir, num_lightning_variations=5
         # Crop to square
         cropped_image = crop_to_square(image)
 
-        cropped_image = cropped_image.resize((IMG_SIZE, IMG_SIZE))  
-        # rescale to a slightly smaller size to make future processing faster
-        # as a test save the cropped image
-        for rotation in rotations:
-            transposed_image = transpose_image(cropped_image, rotation)
-            output_dir = os.path.join(output_base_dir, f"{rotation}_degrees")
-            transposed_image.save(os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_rotation_{rotation}.png"))
-            image_count += 1
-            for i in range(num_lightning_variations):
-                brightness_factor = np.random.uniform(0.5, 1.5)
-                brightened_image = adjust_brightness(transposed_image, brightness_factor)
-                brightened_image.save(os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_rotation_{rotation}_bright_{i}.png"))
+        cropped_image = cropped_image.resize((IMG_SIZE + RANDOM_CROP_PIXELS * 2, IMG_SIZE + RANDOM_CROP_PIXELS * 2))
+        # random crop
+        for i in range(num_crop_variations):
+            left = np.random.randint(0, RANDOM_CROP_PIXELS * 2)
+            top = np.random.randint(0, RANDOM_CROP_PIXELS * 2)
+            right = left + IMG_SIZE
+            bottom = top + IMG_SIZE
+            rand_cropped_image = cropped_image.crop((left, top, right, bottom))
+            for rotation in rotations:
+                transposed_image = transpose_image(rand_cropped_image, rotation)
+
+                output_dir = os.path.join(output_base_dir, f"{rotation}_degrees")
+                transposed_image.save(os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_crop_{i}_rotation_{rotation}.png"))
                 image_count += 1
+                for ii in range(num_lightning_variations):
+                    brightness_factor = np.random.uniform(0.5, 1.5)
+                    brightened_image = adjust_brightness(transposed_image, brightness_factor)
+                    brightened_image.save(os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_crop_{i}_rotation_{rotation}_lightning_{ii}.png"))
+                    image_count += 1
     print(f'Generated {image_count} images from a starting set of {len(os.listdir(input_dir))} images')
 
 # Example usage
