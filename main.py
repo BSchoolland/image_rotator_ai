@@ -7,7 +7,11 @@ import matplotlib.pyplot as plt
 # Define paths and parameters
 inference_dir = 'inference'
 img_height, img_width = 128, 128
-class_types = ['0_degrees', '90_degrees', '180_degrees', '270_degrees']
+# rotations: 0, 180, 270, 90 degrees
+class_types = ['0_degrees', '180_degrees', '270_degrees', '90_degrees']
+
+# corrected rotation output
+output_dir = "output"
 
 # Load the trained model
 model = load_model('app/model.keras')
@@ -39,3 +43,14 @@ for image_file in image_files:
               '\n'.join([f'{cls}: {conf:.2f}' for cls, conf in zip(class_types, predictions[0])]))
     plt.axis('off')
     plt.show()
+    # rotate the image to be right side up
+    if predicted_class == 1:
+        img = np.rot90(img, 2)
+    elif predicted_class == 2:
+        img = np.rot90(img, 3)
+    elif predicted_class == 3:
+        img = np.rot90(img, 1)
+    plt.imshow(img)
+    # save the corrected image
+    plt.imsave(os.path.join(output_dir, image_file), img)
+    
