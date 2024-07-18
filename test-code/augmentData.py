@@ -1,6 +1,8 @@
 from PIL import Image, ImageEnhance, ExifTags
 import numpy as np
 import os
+from tqdm import tqdm
+
 
 IMG_SIZE = 128
 
@@ -18,12 +20,12 @@ def crop_to_square(image):
     return image.crop((left, top, right, bottom))
 
 def transpose_image(image, angle):
-    # if angle == 90:
-    #     return image.transpose(Image.Transpose.ROTATE_270)
-    # elif angle == 180:
-    #     return image.transpose(Image.Transpose.ROTATE_180)
-    # elif angle == 270:
-    #     return image.transpose(Image.Transpose.ROTATE_90)
+    if angle == 90:
+        return image.transpose(Image.Transpose.ROTATE_270)
+    elif angle == 180:
+        return image.transpose(Image.Transpose.ROTATE_180)
+    elif angle == 270:
+        return image.transpose(Image.Transpose.ROTATE_90)
     return image
 
 
@@ -61,9 +63,9 @@ def generate_permutations(input_dir, output_base_dir, num_lightning_variations=5
         output_dir = os.path.join(output_base_dir, f"{rotation}_degrees")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-    
+    image_count = 0
     # Process each image in the input directory
-    for image_name in os.listdir(input_dir):
+    for image_name in tqdm(os.listdir(input_dir), desc="Processing Images"):
         image_path = os.path.join(input_dir, image_name)
         image = Image.open(image_path)
         image = correct_image_orientation(image)
@@ -77,12 +79,13 @@ def generate_permutations(input_dir, output_base_dir, num_lightning_variations=5
             transposed_image = transpose_image(cropped_image, rotation)
             output_dir = os.path.join(output_base_dir, f"{rotation}_degrees")
             transposed_image.save(os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_rotation_{rotation}.png"))
-            print('saved to', os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_rotation_{rotation}.png"))
-            
+            image_count += 1
             for i in range(num_lightning_variations):
                 brightness_factor = np.random.uniform(0.5, 1.5)
                 brightened_image = adjust_brightness(transposed_image, brightness_factor)
                 brightened_image.save(os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}_rotation_{rotation}_bright_{i}.png"))
+                image_count += 1
+    print(f'Generated {image_count} images from a starting set of {len(os.listdir(input_dir))} images')
 
 # Example usage
 input_dir = 'test-code/input'

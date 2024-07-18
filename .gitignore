@@ -1,3 +1,5 @@
 # ignore all training data
 /test-code/input
-/test-code/output
+*/output
+# too big to be stored in git
+*/model.keras 
